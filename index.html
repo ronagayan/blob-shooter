@@ -30,18 +30,39 @@
   <div id="joinOverlay">
     <div id="joinBox">
       <h2>BLOB SHOOTER</h2>
-      <p class="join-label">Enter your nickname</p>
-      <input id="nameInput" placeholder="Your name" maxlength="16" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off" />
-      <p class="join-label">Pick your color</p>
-      <div id="colorPicker"></div>
-      <!-- Mobile controls toggle (auto-checked on touch devices) -->
-      <div class="join-toggle-row">
-        <label class="join-toggle-label">
-          <input type="checkbox" id="mobileToggle" />
-          <span>Mobile Controls</span>
-        </label>
+      <div id="modeCards">
+
+        <!-- Training card -->
+        <div class="mode-card" id="trainingCard">
+          <div class="mode-icon">🏏</div>
+          <h3 class="mode-title">Training Grounds</h3>
+          <p class="mode-desc">Practice your swing solo</p>
+          <button id="trainingBtn">Play Solo</button>
+        </div>
+
+        <div class="mode-divider"></div>
+
+        <!-- Shooter card -->
+        <div class="mode-card" id="shooterCard">
+          <div class="mode-icon">🔫</div>
+          <h3 class="mode-title">Blob Shooter</h3>
+          <p class="mode-desc">Multiplayer arena</p>
+          <p class="join-label">Enter your nickname</p>
+          <input id="nameInput" placeholder="Your name" maxlength="16"
+                 autocomplete="off" spellcheck="false"
+                 autocorrect="off" autocapitalize="off" />
+          <p class="join-label">Pick your color</p>
+          <div id="colorPicker"></div>
+          <div class="join-toggle-row">
+            <label class="join-toggle-label">
+              <input type="checkbox" id="mobileToggle" />
+              <span>Mobile Controls</span>
+            </label>
+          </div>
+          <button id="joinBtn" disabled>Join Game</button>
+        </div>
+
       </div>
-      <button id="joinBtn" disabled>Join Game</button>
     </div>
   </div>
 
@@ -80,11 +101,16 @@
   </div>
 
   <script src="game.js"></script>
+  <script src="training.js"></script>
+  <script src="draw.js"></script>
 
   <!-- Service worker registration -->
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      // Force-clear old caches and update SW
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(r => r.unregister());
         navigator.serviceWorker.register('/sw.js').catch(() => {});
       });
     }

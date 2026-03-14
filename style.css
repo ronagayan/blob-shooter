@@ -1,7 +1,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  background: #060e14;
+  background: linear-gradient(135deg, #A8D8B0 0%, #F5E6CA 35%, #E8C9A0 65%, #D4A574 100%);
   overflow: hidden;
   width: 100vw;
   height: 100vh;
@@ -10,18 +10,21 @@ body {
 }
 
 #gameCanvas {
-  /* Fixed-positioned at natural 1600x1200; JS transform scales it to fill screen */
+  /* Fixed-positioned at natural 1600x900; JS transform scales it to fill screen */
   position: fixed;
   top: 50%;
   left: 50%;
   width: 1600px;
-  height: 1200px;
+  height: 900px;
   margin-left: -800px;
-  margin-top: -600px;
+  margin-top: -450px;
   transform-origin: center center;
-  image-rendering: pixelated;
-  border-radius: 4px;
-  box-shadow: 0 0 80px rgba(60,140,200,0.12);
+  image-rendering: auto;
+  border-radius: 18px;
+  box-shadow:
+    0 8px 32px rgba(120,70,40,0.25),
+    0 2px 8px rgba(120,70,40,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.1);
   touch-action: none;
 }
 
@@ -209,6 +212,65 @@ body {
   box-shadow: 0 0 18px rgba(68,255,136,0.4);
 }
 #joinBtn:disabled { opacity: 0.3; cursor: default; }
+
+#trainingBtn {
+  margin-top: 4px;
+  padding: 9px 28px;
+  background: transparent;
+  color: #7986CB;
+  border: 1.5px solid rgba(121,134,203,0.4);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  font-family: inherit;
+}
+#trainingBtn:hover {
+  background: rgba(121,134,203,0.15);
+  border-color: #7986CB;
+  color: #9FA8DA;
+}
+
+/* ── Mode select cards ─────────────────────────── */
+#joinBox { padding: 28px 32px; }
+#modeCards {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: center;
+  margin-top: 12px;
+}
+.mode-card {
+  flex: 1;
+  min-width: 200px;
+  max-width: 260px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(68,255,136,0.12);
+  border-radius: 10px;
+  padding: 18px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.mode-icon  { font-size: 28px; }
+.mode-title { font-size: 15px; font-weight: 700; color: #ddf0e8; letter-spacing: 1px; }
+.mode-desc  { font-size: 11px; color: #6a9a7a; letter-spacing: 0.5px; }
+.mode-divider {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(68,255,136,0.1);
+  margin: 8px 0;
+}
+@media (max-width: 560px), (max-height: 500px) {
+  #modeCards    { flex-direction: column; align-items: center; }
+  .mode-card    { min-width: 260px; max-width: 320px; }
+  .mode-divider { width: auto; height: 1px; align-self: stretch; }
+}
 
 /* ── Join screen: mobile-controls toggle ── */
 .join-toggle-row {
