@@ -1,0 +1,301 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #060e14;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  cursor: crosshair;
+}
+
+#gameCanvas {
+  /* Fixed-positioned at natural 1600x1200; JS transform scales it to fill screen */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 1600px;
+  height: 1200px;
+  margin-left: -800px;
+  margin-top: -600px;
+  transform-origin: center center;
+  image-rendering: pixelated;
+  border-radius: 4px;
+  box-shadow: 0 0 80px rgba(60,140,200,0.12);
+  touch-action: none;
+}
+
+/* ── HUD ── */
+#hud {
+  position: fixed;
+  /* Respect notch / home-bar safe area on mobile */
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#weaponHud { display: flex; gap: 8px; }
+
+.weapon-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0,0,0,0.6);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 7px 13px;
+  min-width: 82px;
+  transition: border-color 0.13s, background 0.13s, box-shadow 0.13s;
+  backdrop-filter: blur(6px);
+}
+
+.weapon-slot.active {
+  border-color: rgba(80,210,255,0.8);
+  background: rgba(10,60,100,0.7);
+  box-shadow: 0 0 18px rgba(80,190,255,0.3);
+}
+
+.weapon-slot.low-ammo .ammo-fill {
+  background: linear-gradient(90deg, #ff5533, #cc1100) !important;
+}
+
+.roll-slot { min-width: 72px; }
+
+.key-label {
+  font-size: 10px; font-weight: 700;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.weapon-name { font-size: 13px; font-weight: 700; color: white; }
+.ammo-bar {
+  width: 100%; height: 4px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 2px; overflow: hidden;
+}
+.ammo-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #44e5ff, #0088bb);
+  border-radius: 2px;
+  transition: width 0.08s;
+}
+
+#crosshairHint {
+  font-size: 11px;
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 0.2px;
+}
+
+/* ── Rotate prompt ───────────────────────────── */
+#rotatePrompt {
+  display: none;
+  position: fixed; inset: 0; z-index: 1000;
+  background: #060e14;
+  align-items: center; justify-content: center;
+}
+#rotateBox {
+  text-align: center;
+  color: #44ff88;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+#rotateIcon {
+  font-size: 72px;
+  animation: rotateAnim 1.8s ease-in-out infinite;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+@keyframes rotateAnim {
+  0%   { transform: rotate(0deg);   }
+  40%  { transform: rotate(90deg);  }
+  60%  { transform: rotate(90deg);  }
+  100% { transform: rotate(90deg);  }
+}
+#rotateBox p { font-size: 20px; font-weight: 700; letter-spacing: 2px; margin: 0; }
+.rotate-sub  { font-size: 13px; color: rgba(68,255,136,0.5); margin-top: 8px !important; letter-spacing: 1px; }
+
+/* ── Join screen ──────────────────────────────── */
+#joinOverlay {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 12, 8, 0.96);
+  z-index: 200;
+}
+#joinBox {
+  background: #0d1f16;
+  border: 2px solid #44ff88;
+  border-radius: 14px;
+  padding: 44px 56px;
+  text-align: center;
+  color: #ddf0e8;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  box-shadow: 0 0 60px rgba(68,255,136,0.18), 0 0 120px rgba(68,255,136,0.06);
+  min-width: 320px;
+}
+#joinBox h2 {
+  color: #44ff88;
+  letter-spacing: 6px;
+  font-size: 30px;
+  margin-bottom: 28px;
+  text-shadow: 0 0 20px rgba(68,255,136,0.4);
+}
+.join-label {
+  color: #6a9a7a;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 18px 0 8px;
+}
+#nameInput {
+  background: #0a1a14;
+  color: #44ff88;
+  border: 1.5px solid rgba(68,255,136,0.35);
+  border-radius: 6px;
+  padding: 9px 16px;
+  font-size: 15px;
+  width: 210px;
+  outline: none;
+  text-align: center;
+  font-family: inherit;
+  letter-spacing: 1px;
+}
+#nameInput:focus {
+  border-color: #44ff88;
+  box-shadow: 0 0 10px rgba(68,255,136,0.25);
+}
+#colorPicker {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 8px 0 4px;
+  flex-wrap: wrap;
+}
+.color-swatch {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+  box-sizing: border-box;
+}
+.color-swatch:hover { transform: scale(1.18); }
+.color-swatch.selected {
+  border-color: #ffffff;
+  box-shadow: 0 0 12px rgba(255,255,255,0.5);
+  transform: scale(1.12);
+}
+#joinBtn {
+  margin-top: 26px;
+  padding: 11px 42px;
+  background: #44ff88;
+  color: #0a1a14;
+  border: none;
+  border-radius: 7px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: background 0.12s, box-shadow 0.12s;
+  font-family: inherit;
+}
+#joinBtn:hover:not(:disabled) {
+  background: #66ffaa;
+  box-shadow: 0 0 18px rgba(68,255,136,0.4);
+}
+#joinBtn:disabled { opacity: 0.3; cursor: default; }
+
+/* ── Join screen: mobile-controls toggle ── */
+.join-toggle-row {
+  margin: 20px 0 0;
+  display: flex;
+  justify-content: center;
+}
+.join-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: #6a9a7a;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.join-toggle-label input[type="checkbox"] {
+  width: 17px; height: 17px;
+  accent-color: #44ff88;
+  cursor: pointer;
+}
+
+/* ── Touch action buttons overlay ── */
+#touchBtns {
+  position: fixed;
+  right: max(3%, env(safe-area-inset-right, 0px));
+  bottom: max(3%, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 14px;
+  z-index: 50;
+}
+.touch-btn {
+  width: clamp(64px, 16vmin, 96px);
+  height: clamp(64px, 16vmin, 96px);
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.55);
+  background: rgba(0,0,0,0.52);
+  color: #fff;
+  font-size: clamp(10px, 2.5vmin, 14px);
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+  transition: background 0.08s, transform 0.07s;
+}
+.touch-btn:active { background: rgba(60,60,60,0.82); transform: scale(0.9); }
+#rollTouchBtn  { border-color: rgba(68,170,255,0.8); }
+#decoyTouchBtn { border-color: rgba(68,255,204,0.8); width: clamp(54px, 13vmin, 80px); height: clamp(54px, 13vmin, 80px); }
+
+/* ── Inventory overlay (drawn on canvas, no extra HTML needed) ── */
+
+/* ── Mobile landscape: compact join screen ────────────────────── */
+@media screen and (orientation: landscape) and (max-height: 560px) {
+  #joinBox {
+    padding: 18px 36px;
+    max-height: calc(96vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    min-width: 280px;
+  }
+  #joinBox h2 {
+    font-size: 20px;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+  }
+  .join-label { margin: 8px 0 5px; font-size: 10px; }
+  #nameInput  { padding: 7px 12px; font-size: 14px; width: 190px; }
+  .color-swatch { width: 28px; height: 28px; }
+  #colorPicker  { gap: 7px; }
+  .join-toggle-row { margin: 10px 0 0; }
+  #joinBtn { margin-top: 14px; padding: 9px 28px; font-size: 14px; }
+}
+
+/* ── Mobile: shrink weapon HUD so it fits in landscape ─────────── */
+@media screen and (max-height: 500px) {
+  #weaponHud { gap: 5px; }
+  .weapon-slot { padding: 5px 9px; min-width: 68px; }
+  .weapon-name { font-size: 11px; }
+  .key-label   { font-size: 9px;  }
+  .roll-slot   { min-width: 58px; }
+  #crosshairHint { font-size: 9px; }
+}

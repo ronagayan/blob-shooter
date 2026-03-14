@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Blob Shooter</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#44ff88" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Blob Shooter" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ── Rotate prompt (portrait only) ───────── -->
+  <div id="rotatePrompt">
+    <div id="rotateBox">
+      <div id="rotateIcon">⟳</div>
+      <p>Rotate your device</p>
+      <p class="rotate-sub">This game is landscape only</p>
+    </div>
+  </div>
+
+  <!-- ── Join screen ─────────────────────────── -->
+  <div id="joinOverlay">
+    <div id="joinBox">
+      <h2>BLOB SHOOTER</h2>
+      <p class="join-label">Enter your nickname</p>
+      <input id="nameInput" placeholder="Your name" maxlength="16" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off" />
+      <p class="join-label">Pick your color</p>
+      <div id="colorPicker"></div>
+      <!-- Mobile controls toggle (auto-checked on touch devices) -->
+      <div class="join-toggle-row">
+        <label class="join-toggle-label">
+          <input type="checkbox" id="mobileToggle" />
+          <span>Mobile Controls</span>
+        </label>
+      </div>
+      <button id="joinBtn" disabled>Join Game</button>
+    </div>
+  </div>
+
+  <!-- Touch action buttons (shown when mobile controls are enabled) -->
+  <div id="touchBtns" style="display:none">
+    <button class="touch-btn" id="rollTouchBtn">ROLL</button>
+    <button class="touch-btn" id="decoyTouchBtn">DECOY</button>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="hud">
+    <div id="weaponHud">
+      <div class="weapon-slot" id="slot-0">
+        <span class="key-label">1</span>
+        <span class="weapon-name">Pistol</span>
+        <div class="ammo-bar"><div class="ammo-fill" id="ammo-0"></div></div>
+      </div>
+      <div class="weapon-slot" id="slot-1">
+        <span class="key-label">2</span>
+        <span class="weapon-name">SMG</span>
+        <div class="ammo-bar"><div class="ammo-fill" id="ammo-1"></div></div>
+      </div>
+      <div class="weapon-slot" id="slot-2">
+        <span class="key-label">3</span>
+        <span class="weapon-name">Shotgun</span>
+        <div class="ammo-bar"><div class="ammo-fill" id="ammo-2"></div></div>
+      </div>
+      <div class="weapon-slot roll-slot" id="roll-slot">
+        <span class="key-label">SPC</span>
+        <span class="weapon-name">Roll</span>
+        <div class="ammo-bar"><div class="ammo-fill" id="roll-fill" style="background:linear-gradient(90deg,#44aaff,#0055aa)"></div></div>
+      </div>
+    </div>
+    <div id="crosshairHint">WASD: Move &nbsp;|&nbsp; Mouse: Aim &nbsp;|&nbsp; Click: Shoot &nbsp;|&nbsp; Space: Roll &nbsp;|&nbsp; Tab: Inventory &nbsp;|&nbsp; F: Factory</div>
+  </div>
+
+  <script src="game.js"></script>
+
+  <!-- Service worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
