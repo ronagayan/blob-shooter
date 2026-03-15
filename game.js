@@ -2430,7 +2430,7 @@ requestAnimationFrame(loop);
     const doSpawn = e => {
       e.preventDefault();
       e.stopPropagation();
-      if (typeof window.trnSpawnEnemy === 'function') window.trnSpawnEnemy();
+      if (window.trnRequestSpawn) window.trnRequestSpawn();
     };
     spawnEnemyBtn.addEventListener('pointerdown', doSpawn);
     spawnEnemyBtn.addEventListener('touchstart', doSpawn, { passive: false });

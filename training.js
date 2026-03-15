@@ -153,8 +153,11 @@ function updateTrainingCamera() {
   // Smoothly follow player, clamped so camera never shows outside the map
   const halfW = (WW / 2) / trnCam.zoom;
   const halfH = (WH / 2) / trnCam.zoom;
-  const targetX = clamp(player.x, TRN_L + halfW, TRN_R - halfW);
-  const targetY = clamp(player.y, TRN_T + halfH, TRN_B - halfH);
+  // If viewport is larger than map on an axis, center on that axis
+  const mapCX = (TRN_L + TRN_R) / 2;
+  const mapCY = (TRN_T + TRN_B) / 2;
+  const targetX = (TRN_R - TRN_L) <= halfW * 2 ? mapCX : clamp(player.x, TRN_L + halfW, TRN_R - halfW);
+  const targetY = (TRN_B - TRN_T) <= halfH * 2 ? mapCY : clamp(player.y, TRN_T + halfH, TRN_B - halfH);
   trnCam.x += (targetX - trnCam.x) * 0.1;
   trnCam.y += (targetY - trnCam.y) * 0.1;
 }
@@ -850,8 +853,9 @@ function updateTraining(dt) {
     if (trnEnemies[i].splatTimer >= 0.4) trnEnemies.splice(i, 1);
   }
 
-  // Handle spawn button click
+  // Handle spawn button click (canvas HUD click or HTML button flag)
   checkTrainingSpawnClick();
+  if (_trnSpawnRequested) { _trnSpawnRequested = false; trnSpawnEnemy(); }
 }
 
 // ── Draw (world-space content only) ─────────────
@@ -1223,8 +1227,11 @@ function checkTrainingBackClick() {
   return false;
 }
 
+// ── Spawn request flag — set by HTML button, consumed by update loop ──
+let _trnSpawnRequested = false;
+window.trnRequestSpawn = function() { _trnSpawnRequested = true; };
+
 // ── Spawn one enemy — callable from button or click ──
-// Exposed on window so game.js button handler can call it
 window.trnSpawnEnemy = trnSpawnEnemy;
 function trnSpawnEnemy() {
   if (trnEnemies.length >= ENEMY_MAX_COUNT) return;
