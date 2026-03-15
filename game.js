@@ -125,6 +125,9 @@ function onTouchStart(e) {
   e.preventDefault();
   for (const t of e.changedTouches) {
     const { x, y } = toCanvasCoords(t);
+    // Update mouse screen coords so canvas-drawn HUD buttons work on touch
+    mouse.screenX = x; mouse.screenY = y;
+    mouse.justDown = true;
     // Check weapon button taps first
     if (touchControls._weaponBtns) {
       let hitBtn = false;
@@ -2393,10 +2396,12 @@ requestAnimationFrame(loop);
     if (btns) btns.style.display = 'none';
     const hud = document.getElementById('hud');
     if (hud) hud.style.display = 'none';
-    // Show training touch buttons on touch devices
-    const trnBtns = document.getElementById('trainingTouchBtns');
-    if (trnBtns && ('ontouchstart' in window || navigator.maxTouchPoints > 0))
-      trnBtns.style.display = 'flex';
+    // Enable touch controls and show training touch buttons on touch devices
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      touchControls.enabled = true;
+      const trnBtns = document.getElementById('trainingTouchBtns');
+      if (trnBtns) trnBtns.style.display = 'flex';
+    }
     gameMode = 'training';
     initTraining();
     canvas.focus();
