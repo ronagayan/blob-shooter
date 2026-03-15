@@ -14,11 +14,15 @@ const MIME = {
   '.ico':  'image/x-icon',
 };
 const httpServer = http.createServer((req, res) => {
-  const file = req.url === '/' ? '/index.html' : req.url;
-  const fp   = path.join(__dirname, file.split('?')[0]);
+  const urlPath = req.url.split('?')[0];
+  const file = urlPath === '/' ? '/index.html' : urlPath;
+  const fp   = path.join(__dirname, file);
   fs.readFile(fp, (err, data) => {
     if (err) { res.writeHead(404); res.end('Not found'); return; }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'text/plain' });
+    res.writeHead(200, {
+      'Content-Type': MIME[path.extname(fp)] || 'text/plain',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+    });
     res.end(data);
   });
 });
