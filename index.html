@@ -110,14 +110,12 @@
   <script src="training.js?v=4"></script>
   <script src="draw.js?v=4"></script>
 
-  <!-- Service worker registration -->
+  <!-- Service worker: nuke old caches, don't re-register for now -->
   <script>
     if ('serviceWorker' in navigator) {
-      // Force-clear old caches and update SW
       caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
       navigator.serviceWorker.getRegistrations().then(regs => {
         regs.forEach(r => r.unregister());
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
       });
     }
   </script>
