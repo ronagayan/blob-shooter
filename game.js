@@ -2427,9 +2427,15 @@ requestAnimationFrame(loop);
     rollTrainingBtn.addEventListener('pointerleave',e => { keys['Space'] = false; });
   }
   if (spawnEnemyBtn) {
-    spawnEnemyBtn.onclick = () => {
+    // touchstart is reliable on mobile (not blocked by touch-action: none)
+    spawnEnemyBtn.addEventListener('touchstart', e => {
+      e.stopImmediatePropagation();
       window._trnSpawnRequested = true;
-    };
+    }, { passive: true });
+    // fallback for mouse/desktop
+    spawnEnemyBtn.addEventListener('mousedown', () => {
+      window._trnSpawnRequested = true;
+    });
   }
 })();
 
