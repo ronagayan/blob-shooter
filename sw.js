@@ -1,7 +1,7 @@
 'use strict';
 
-const CACHE = 'blob-shooter-v1';
-const PRECACHE = ['/', '/index.html', '/style.css', '/game.js', '/draw.js', '/manifest.json', '/icon.svg', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'blob-shooter-v4';
+const PRECACHE = ['/', '/index.html', '/style.css', '/game.js', '/draw.js', '/training.js', '/manifest.json', '/icon.svg', '/icon-192.png', '/icon-512.png'];
 
 // ── Install: pre-cache all static assets ──────────
 self.addEventListener('install', e => {
@@ -28,16 +28,13 @@ self.addEventListener('fetch', e => {
   if (!e.request.url.startsWith(self.location.origin)) return;
 
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        // Dynamically cache any new same-origin resource
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      });
-    })
+    fetch(e.request).then(res => {
+      // Network-first: cache fresh response, serve it
+      if (res.ok) {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+      }
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });
