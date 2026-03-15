@@ -2431,12 +2431,12 @@ requestAnimationFrame(loop);
     spawnEnemyBtn.addEventListener('touchstart', e => {
       e.stopImmediatePropagation();
       window._trnSpawnRequested = true;
-      console.log('[BTN] touchstart fired, flag set');
+      window._spawnDebug = 'TS:' + Date.now();
     }, { passive: true });
     // fallback for mouse/desktop
     spawnEnemyBtn.addEventListener('mousedown', () => {
       window._trnSpawnRequested = true;
-      console.log('[BTN] mousedown fired, flag set');
+      window._spawnDebug = 'MD:' + Date.now();
     });
   }
 })();

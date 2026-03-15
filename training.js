@@ -1167,6 +1167,12 @@ function drawTrainingHUD() {
   ctx.fillText('+ ENEMY', 170, 40);
   ctx.restore();
 
+  // Debug: show spawn state on screen
+  ctx.save();
+  ctx.fillStyle = '#ff0'; ctx.font = '11px monospace'; ctx.textAlign = 'left';
+  ctx.fillText('enemies:' + trnEnemies.length + ' flag:' + window._trnSpawnRequested + ' btn:' + (window._spawnDebug||'none'), 20, 70);
+  ctx.restore();
+
   // Mode label
   ctx.save();
   ctx.fillStyle = 'rgba(200,160,100,0.5)';
