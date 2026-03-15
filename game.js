@@ -2426,10 +2426,14 @@ requestAnimationFrame(loop);
     rollTrainingBtn.addEventListener('pointerup',   e => { e.stopPropagation(); keys['Space'] = false; });
     rollTrainingBtn.addEventListener('pointerleave',e => { keys['Space'] = false; });
   }
-  if (spawnEnemyBtn)
-    spawnEnemyBtn.addEventListener('pointerdown', e => {
+  if (spawnEnemyBtn) {
+    const doSpawn = e => {
+      e.preventDefault();
       e.stopPropagation();
-      if (typeof trnSpawnEnemy === 'function') trnSpawnEnemy();
-    });
+      if (typeof window.trnSpawnEnemy === 'function') window.trnSpawnEnemy();
+    };
+    spawnEnemyBtn.addEventListener('pointerdown', doSpawn);
+    spawnEnemyBtn.addEventListener('touchstart', doSpawn, { passive: false });
+  }
 })();
 

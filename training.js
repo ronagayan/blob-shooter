@@ -147,12 +147,14 @@ function initTraining() {
 
 // ── Camera update ───────────────────────────────
 function updateTrainingCamera() {
-  trnCam.zoom = 1;
+  // Zoom in on mobile for better visibility, like shooter mode
+  const targetZoom = touchControls.enabled ? 1.3 : 1;
+  trnCam.zoom += (targetZoom - trnCam.zoom) * 0.08;
   // Smoothly follow player, clamped so camera never shows outside the map
   const halfW = (WW / 2) / trnCam.zoom;
   const halfH = (WH / 2) / trnCam.zoom;
-  const targetX = clamp(player.x, halfW, WW - halfW);
-  const targetY = clamp(player.y, halfH, WH - halfH);
+  const targetX = clamp(player.x, TRN_L + halfW, TRN_R - halfW);
+  const targetY = clamp(player.y, TRN_T + halfH, TRN_B - halfH);
   trnCam.x += (targetX - trnCam.x) * 0.1;
   trnCam.y += (targetY - trnCam.y) * 0.1;
 }
@@ -1222,6 +1224,8 @@ function checkTrainingBackClick() {
 }
 
 // ── Spawn one enemy — callable from button or click ──
+// Exposed on window so game.js button handler can call it
+window.trnSpawnEnemy = trnSpawnEnemy;
 function trnSpawnEnemy() {
   if (trnEnemies.length >= ENEMY_MAX_COUNT) return;
   let ex, ey;
