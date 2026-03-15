@@ -861,7 +861,16 @@ function updateTraining(dt) {
 
   // Handle spawn button click (canvas HUD click or HTML button flag)
   checkTrainingSpawnClick();
-  if (window._trnSpawnRequested) { window._trnSpawnRequested = false; trnSpawnEnemy(); }
+  if (window._trnSpawnRequested) {
+    window._trnSpawnRequested = false;
+    console.log('[SPAWN] flag detected, enemies=' + trnEnemies.length + '/' + ENEMY_MAX_COUNT);
+    try {
+      trnSpawnEnemy();
+      console.log('[SPAWN] after call, enemies=' + trnEnemies.length);
+    } catch(e) {
+      console.error('[SPAWN] error:', e);
+    }
+  }
 }
 
 // ── Draw (world-space content only) ─────────────
