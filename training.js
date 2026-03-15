@@ -18,7 +18,7 @@ const ENEMY_BAT_WIDTH    = 14;
 
 // ── Training map — dynamic bounds matching viewport aspect ratio ──
 // Fills the visible area exactly at zoom 1.0 so no brown borders appear
-const TRN_WALL = 15;
+const TRN_WALL = 40;
 let TRN_L = TRN_WALL, TRN_R = WW - TRN_WALL;
 let TRN_T = TRN_WALL, TRN_B = WH - TRN_WALL;
 let TRN_RECTS = [];
@@ -1221,45 +1221,49 @@ function checkTrainingBackClick() {
   return false;
 }
 
-// ── Handle spawn enemy button click ─────────────
-function checkTrainingSpawnClick() {
-  // Button drawn at canvas-space x=125,y=20,w=90,h=30 (mouse.screenX is canvas-space)
-  if (mouse.justDown && mouse.screenX >= 125 && mouse.screenX <= 215 && mouse.screenY >= 20 && mouse.screenY <= 50) {
-    if (trnEnemies.length >= ENEMY_MAX_COUNT) return;
-    // Spawn position: random edge, far from player
-    let ex, ey;
-    let best = null, bestDist = -1;
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const θ = Math.random() * Math.PI * 2;
-      let tx = WW / 2 + Math.cos(θ) * (WW / 2 - 120);
-      let ty = WH / 2 + Math.sin(θ) * (WH / 2 - 120);
-      tx = clamp(tx, TRN_L + 80, TRN_R - 80);
-      ty = clamp(ty, TRN_T + 80, TRN_B - 80);
-      const d = Math.hypot(tx - player.x, ty - player.y);
-      if (d >= 300) { ex = tx; ey = ty; break; }
-      if (d > bestDist) { bestDist = d; best = { x: tx, y: ty }; }
-    }
-    if (ex === undefined && best) { ex = best.x; ey = best.y; }
-    if (ex === undefined) return;
+// ── Spawn one enemy — callable from button or click ──
+function trnSpawnEnemy() {
+  if (trnEnemies.length >= ENEMY_MAX_COUNT) return;
+  let ex, ey;
+  let best = null, bestDist = -1;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const θ = Math.random() * Math.PI * 2;
+    let tx = WW / 2 + Math.cos(θ) * (WW / 2 - 120);
+    let ty = WH / 2 + Math.sin(θ) * (WH / 2 - 120);
+    tx = clamp(tx, TRN_L + 80, TRN_R - 80);
+    ty = clamp(ty, TRN_T + 80, TRN_B - 80);
+    const d = Math.hypot(tx - player.x, ty - player.y);
+    if (d >= 300) { ex = tx; ey = ty; break; }
+    if (d > bestDist) { bestDist = d; best = { x: tx, y: ty }; }
+  }
+  if (ex === undefined && best) { ex = best.x; ey = best.y; }
+  if (ex === undefined) return;
 
-    const angle = Math.atan2(trainingBall.y - ey, trainingBall.x - ex);
-    const seg = _getEnemyBatSegment({ x: ex, y: ey, radius: 26 }, angle);
-    trnEnemies.push({
-      x: ex, y: ey,
-      vx: 0, vy: 0,
-      radius: 26,
-      angle,
-      hp: ENEMY_MAX_HP, maxHp: ENEMY_MAX_HP,
-      flashTimer: 0,
-      splatTimer: -1,
-      swingCooldown: 0,
-      swingProgress: -1,
-      swingStartAngle: 0,
-      swingDir: 1,
-      prevBatBase: { x: seg.bx, y: seg.by },
-      prevBatTip:  { x: seg.tx, y: seg.ty },
-      hitThisSwing: false,
-      color: '#E74C3C',
-    });
+  const angle = Math.atan2(trainingBall.y - ey, trainingBall.x - ex);
+  const seg = _getEnemyBatSegment({ x: ex, y: ey, radius: 26 }, angle);
+  trnEnemies.push({
+    x: ex, y: ey,
+    vx: 0, vy: 0,
+    radius: 26,
+    angle,
+    hp: ENEMY_MAX_HP, maxHp: ENEMY_MAX_HP,
+    flashTimer: 0,
+    splatTimer: -1,
+    swingCooldown: 0,
+    swingProgress: -1,
+    swingStartAngle: 0,
+    swingDir: 1,
+    prevBatBase: { x: seg.bx, y: seg.by },
+    prevBatTip:  { x: seg.tx, y: seg.ty },
+    hitThisSwing: false,
+    color: '#E74C3C',
+  });
+}
+
+// ── Handle spawn enemy button click (canvas HUD) ─
+function checkTrainingSpawnClick() {
+  // Button drawn at canvas-space x=125,y=20,w=90,h=30
+  if (mouse.justDown && mouse.screenX >= 125 && mouse.screenX <= 215 && mouse.screenY >= 20 && mouse.screenY <= 50) {
+    trnSpawnEnemy();
   }
 }

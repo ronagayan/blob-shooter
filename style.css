@@ -328,6 +328,20 @@ body {
 #rollTouchBtn  { border-color: rgba(68,170,255,0.8); }
 #decoyTouchBtn { border-color: rgba(68,255,204,0.8); width: clamp(54px, 13vmin, 80px); height: clamp(54px, 13vmin, 80px); }
 
+/* ── Training-mode touch buttons ── */
+#trainingTouchBtns {
+  position: fixed;
+  right: max(3%, env(safe-area-inset-right, 0px));
+  bottom: max(3%, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 14px;
+  z-index: 50;
+}
+#rollTrainingBtn { border-color: rgba(68,170,255,0.8); }
+#spawnEnemyBtn   { border-color: rgba(159,168,218,0.8); font-size: clamp(8px, 2vmin, 11px); }
+
 /* ── Inventory overlay (drawn on canvas, no extra HTML needed) ── */
 
 /* ── Mobile landscape: compact join screen ────────────────────── */

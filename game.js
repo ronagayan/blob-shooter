@@ -1,32 +1,35 @@
 // ── Canvas ─────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');
-const WW = 1600, WH = 1200, WALL = 60, TILE = 64;
+const WW = 1600, WH = 900, WALL = 60, TILE = 64;
 canvas.width  = WW;   // set drawing buffer to match the game world size
 canvas.height = WH;
 const ctx = canvas.getContext('2d');
 const IL = WALL, IR = WW - WALL, IT = WALL, IB = WH - WALL;
 
 // ── Combat Room ──────────────────────────────────
-const DIVIDER_Y = 780, DIVIDER_THICK = 28;
+const DIVIDER_Y = 585, DIVIDER_THICK = 28;
 const DOOR_LEFT = 700, DOOR_RIGHT = 900;
 const solidRects = [
   { x: IL,         y: DIVIDER_Y, w: DOOR_LEFT - IL,  h: DIVIDER_THICK }, // divider left
   { x: DOOR_RIGHT, y: DIVIDER_Y, w: IR - DOOR_RIGHT, h: DIVIDER_THICK }, // divider right
-  { x: 200, y: 640, w: 80, h: 80 },   // cover L-near
-  { x: 1320, y: 640, w: 80, h: 80 },  // cover R-near
-  { x: 280, y: 440, w: 80, h: 80 },   // cover L-mid
-  { x: 1240, y: 440, w: 80, h: 80 },  // cover R-mid
-  { x: 420, y: 220, w: 80, h: 80 },   // cover L-far
-  { x: 1100, y: 220, w: 80, h: 80 },  // cover R-far
+  { x: 200, y: 480, w: 80, h: 80 },   // cover L-near
+  { x: 1320, y: 480, w: 80, h: 80 },  // cover R-near
+  { x: 280, y: 330, w: 80, h: 80 },   // cover L-mid
+  { x: 1240, y: 330, w: 80, h: 80 },  // cover R-mid
+  { x: 420, y: 165, w: 80, h: 80 },   // cover L-far
+  { x: 1100, y: 165, w: 80, h: 80 },  // cover R-far
 ];
 const enemy = {
-  x: 800, y: 180, radius: 28,
+  x: 800, y: 140, radius: 28,
   hp: 200, maxHp: 200,
   fireRate: 1800, lastFired: 0,
   bulletSpeed: 480, bulletDmg: 8, bulletRange: 900,
   alive: true, flashTimer: 0, angle: 0,
   losAlpha: 0,   // 0 = fully hidden, 1 = fully visible (smooth LOS fade)
 };
+
+// ── Game mode ───────────────────────────────────
+let gameMode = 'shooter'; // 'shooter' | 'training'
 
 // ── Multiplayer state ────────────────────────────
 let ws             = null;   // WebSocket (null = solo mode)
@@ -43,6 +46,9 @@ let enemyLastSeenFire      = 0;         // performance.now() when we last saw en
 
 let canvasScale = 1;
 let visibleBottomCanvasY = WH; // canvas-space y of the bottom edge of the viewport
+let cameraZoom = 1;       // >1 = zoomed in (mobile)
+let cameraX = WW / 2;     // camera center in world-space
+let cameraY = WH / 2;
 function resize() {
   // Use visualViewport when available (more reliable on mobile/iOS)
   const vw = window.visualViewport ? window.visualViewport.width  : window.innerWidth;
@@ -55,7 +61,7 @@ function resize() {
   // Always scale to fill screen width (no side bars); top/bottom may be cropped
   canvasScale = vw / WW;
 
-  // Canvas is fixed-positioned and always 1600x1200 CSS px; use transform to scale it
+  // Canvas is fixed-positioned and always 1600x900 CSS px; use transform to scale it
   canvas.style.transform = `scale(${canvasScale})`;
 
   // Track the visible bottom edge in canvas-space (used to position joystick hints)
@@ -93,7 +99,7 @@ let myPlayerColor = PLAYER_COLORS[0]; // chosen on join screen
 
 // ── Input ───────────────────────────────────────
 const keys = {};
-const mouse = { x: WW / 2, y: WH / 2, down: false, justDown: false, justUp: false };
+const mouse = { x: WW / 2, y: WH / 2, down: false, justDown: false, justUp: false, screenX: WW / 2, screenY: WH / 2 };
 
 // ── Touch controls ──────────────────────────────
 const touchControls = {
@@ -102,11 +108,12 @@ const touchControls = {
   rightId: null, rightOriginX: 0, rightOriginY: 0, rightCurX: 0, rightCurY: 0,
 };
 // Joystick sizes are derived in screen-px and divided by canvasScale at draw/input time
-const JOYSTICK_SCREEN_MAX  = 80;  // desired screen-px radius for the joystick ring
-const JOYSTICK_SCREEN_DEAD = 20;  // desired screen-px dead-zone radius
-const JOYSTICK_SCREEN_KNOB = 34;  // desired screen-px radius for the knob
+const JOYSTICK_SCREEN_MAX  = 60;  // desired screen-px radius for the joystick ring
+const JOYSTICK_SCREEN_DEAD = 12;  // desired screen-px dead-zone radius
+const JOYSTICK_SCREEN_KNOB = 28;  // desired screen-px radius for the knob
 
 function toCanvasCoords(touch) {
+  // Returns raw canvas-space coords (1600x1200) — used for joystick positions
   const r = canvas.getBoundingClientRect();
   return {
     x: (touch.clientX - r.left) * (WW / r.width),
@@ -118,6 +125,18 @@ function onTouchStart(e) {
   e.preventDefault();
   for (const t of e.changedTouches) {
     const { x, y } = toCanvasCoords(t);
+    // Check weapon button taps first
+    if (touchControls._weaponBtns) {
+      let hitBtn = false;
+      for (const btn of touchControls._weaponBtns) {
+        if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+          switchWeapon(btn.index);
+          hitBtn = true;
+          break;
+        }
+      }
+      if (hitBtn) continue;
+    }
     if (x < WW / 2 && touchControls.leftId === null) {
       touchControls.leftId = t.identifier;
       touchControls.leftOriginX = x; touchControls.leftOriginY = y;
@@ -199,8 +218,19 @@ window.addEventListener('keyup', e => { keys[e.code] = false; });
 
 canvas.addEventListener('mousemove', e => {
   const r = canvas.getBoundingClientRect();
-  mouse.x = (e.clientX - r.left) * (WW / r.width);
-  mouse.y = (e.clientY - r.top) * (WH / r.height);
+  const cx = (e.clientX - r.left) * (WW / r.width);
+  const cy = (e.clientY - r.top)  * (WH / r.height);
+  // Screen-space coords (for UI panels)
+  mouse.screenX = cx;
+  mouse.screenY = cy;
+  // World-space coords (for gameplay aiming)
+  if (gameMode === 'training' && typeof trnCam !== 'undefined') {
+    mouse.x = (cx - WW / 2) / trnCam.zoom + trnCam.x;
+    mouse.y = (cy - WH / 2) / trnCam.zoom + trnCam.y;
+  } else {
+    mouse.x = (cx - WW / 2) / cameraZoom + cameraX;
+    mouse.y = (cy - WH / 2) / cameraZoom + cameraY;
+  }
 });
 canvas.addEventListener('mousedown', () => { mouse.down = true; mouse.justDown = true; });
 canvas.addEventListener('mouseup', () => { mouse.down = false; mouse.justUp = true; });
@@ -246,7 +276,7 @@ const COLOR_PALETTE = [
 
 // ── Player ──────────────────────────────────────
 const player = {
-  x: WW / 2, y: 950, vx: 0, vy: 0,
+  x: WW / 2, y: 710, vx: 0, vy: 0,
   radius: 26, angle: 0, speed: 290, friction: 0.83,
   weaponIndex: 0, recoilOffset: 0,
   rolling: false, rollTimer: 0, rollDuration: 0.32,
@@ -273,8 +303,8 @@ const creatorWeapon = {
 
 // ── Targets ─────────────────────────────────────
 const movingTarget = {
-  baseX: IR - 90, baseY: 960,
-  x: IR - 90, y: 960,
+  baseX: IR - 90, baseY: 720,
+  x: IR - 90, y: 720,
   railHalfH: 100, tAcc: 0, speed: 0.7,
   w: 76, h: 96, hp: 100, maxHp: 100, hits: 0,
   flashTimer: 0, wobble: 0, alive: true,
@@ -293,9 +323,9 @@ function dropDecoy() {
 
 // ── Weapon floor pickups ────────────────────────
 const pickups = [
-  { wi: 0, x: 215, y: 845,  pulse: 0 },
-  { wi: 1, x: 215, y: 945,  pulse: 0 },
-  { wi: 2, x: 215, y: 1050, pulse: 0 },
+  { wi: 0, x: 215, y: 635,  pulse: 0 },
+  { wi: 1, x: 215, y: 710,  pulse: 0 },
+  { wi: 2, x: 215, y: 785, pulse: 0 },
 ];
 
 // ── Inventory ───────────────────────────────────
@@ -430,7 +460,8 @@ function commitRename() {
 // ── Networking ───────────────────────────────────
 function connectToServer(name, color) {
   myPlayerColor = color;
-  ws = new WebSocket(`ws://${location.hostname}:3000`);
+  const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${wsProto}//${location.host}`);
 
   ws.onopen = () => {
     ws.send(JSON.stringify({ type: 'join', name, color }));
@@ -702,7 +733,7 @@ function updateEnemyBullets(dt) {
 }
 function respawnPlayer() {
   player.hp = player.maxHp;
-  player.x = WW / 2; player.y = 950;
+  player.x = WW / 2; player.y = 710;
   player.vx = 0; player.vy = 0;
   player.rolling = false;
   player.invulnTimer = 2.5;
@@ -714,6 +745,19 @@ let lastTime = 0, gameTime = 0;
 function update(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 0.05);
   lastTime = ts;
+
+  // Training mode update
+  if (gameMode === 'training') {
+    if (typeof updateTraining === 'function') updateTraining(dt);
+    if (typeof checkTrainingBackClick === 'function' && checkTrainingBackClick()) {
+      gameMode = 'shooter';
+      document.getElementById('joinOverlay').style.display = 'flex';
+      const trnBtns = document.getElementById('trainingTouchBtns');
+      if (trnBtns) trnBtns.style.display = 'none';
+    }
+    mouse.justDown = false; mouse.justUp = false;
+    return;
+  }
 
   if (!INV.open && !factoryOpen && !creatorOpen) {
     gameTime += dt;
@@ -953,7 +997,7 @@ function cellAt(mx, my) {
 
 function handleInventoryMouse() {
   if (!INV.open) return;
-  const mx = mouse.x, my = mouse.y;
+  const mx = mouse.screenX, my = mouse.screenY;
   if (mouse.justDown) {
     const cell = cellAt(mx, my);
     if (cell) {
@@ -990,7 +1034,7 @@ function factoryLayout() {
 function handleFactoryMouse() {
   if (!factoryOpen) return;
   const { panX, panY, panW, panH, colY, n } = factoryLayout();
-  const mx = mouse.x, my = mouse.y;
+  const mx = mouse.screenX, my = mouse.screenY;
 
   // Continue active slider drag while mouse held
   if (sliderDrag && mouse.down) {
@@ -1041,7 +1085,7 @@ function creatorLayout() {
 function handleCreatorMouse() {
   if (!creatorOpen) return;
   const { panX, panY, panW, panH, sec1Y, sec2Y, sec3Y } = creatorLayout();
-  const mx = mouse.x, my = mouse.y;
+  const mx = mouse.screenX, my = mouse.screenY;
   const cw = creatorWeapon;
 
   // Continue active slider drag while mouse held
@@ -1473,7 +1517,7 @@ function drawInventory() {
     const { id } = INV.drag;
     const def = INV.items[id].def;
     const dw = def.gw * CELL - 4, dh = def.gh * CELL - 4;
-    const dx2 = mouse.x - dw / 2, dy2 = mouse.y - dh / 2;
+    const dx2 = mouse.screenX - dw / 2, dy2 = mouse.screenY - dh / 2;
     ctx.globalAlpha = 0.82;
     ctx.fillStyle = def.color + '44'; ctx.strokeStyle = def.color; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.roundRect(dx2, dy2, dw, dh, 4); ctx.fill(); ctx.stroke();
@@ -2176,11 +2220,76 @@ function drawTouchControls() {
     ctx.beginPath(); ctx.arc(rox, roy, jGhost, 0, Math.PI * 2); ctx.fill();
   }
 
+  // ── Weapon switch buttons (bottom center) ──
+  const btnW = 70, btnH = 36, btnGap = 8;
+  const numWeapons = Math.min(weapons.length, 5);
+  const totalW = numWeapons * btnW + (numWeapons - 1) * btnGap;
+  const btnStartX = (WW - totalW) / 2;
+  const btnY = visibleBottomCanvasY - 52;
+  touchControls._weaponBtns = []; // store for tap detection
+  for (let i = 0; i < numWeapons; i++) {
+    const bx = btnStartX + i * (btnW + btnGap);
+    const isActive = (player.weaponIndex === i);
+    ctx.globalAlpha = isActive ? 0.85 : 0.5;
+    ctx.fillStyle = isActive ? 'rgba(10,60,100,0.8)' : 'rgba(0,0,0,0.6)';
+    ctx.beginPath(); ctx.roundRect(bx, btnY, btnW, btnH, 8); ctx.fill();
+    ctx.strokeStyle = isActive ? 'rgba(80,210,255,0.8)' : 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(bx, btnY, btnW, btnH, 8); ctx.stroke();
+    ctx.globalAlpha = isActive ? 1 : 0.7;
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Segoe UI,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(weapons[i].name, bx + btnW / 2, btnY + btnH / 2 + 4);
+    touchControls._weaponBtns.push({ x: bx, y: btnY, w: btnW, h: btnH, index: i });
+  }
+
   ctx.restore();
 }
 
 // ── MAIN DRAW ────────────────────────────────────
+function updateCamera() {
+  // Zoom in on mobile for better visibility
+  const targetZoom = touchControls.enabled ? 1.3 : 1;
+  cameraZoom += (targetZoom - cameraZoom) * 0.08;
+
+  // Follow player smoothly
+  const targetX = player.x;
+  const targetY = player.y;
+  cameraX += (targetX - cameraX) * 0.1;
+  cameraY += (targetY - cameraY) * 0.1;
+
+  // Clamp so camera doesn't show outside the world
+  const halfViewW = (WW / 2) / cameraZoom;
+  const halfViewH = (WH / 2) / cameraZoom;
+  cameraX = clamp(cameraX, halfViewW, WW - halfViewW);
+  cameraY = clamp(cameraY, halfViewH, WH - halfViewH);
+}
+
 function draw() {
+  // Training mode draw
+  if (gameMode === 'training') {
+    // Use training camera (trnCam) instead of shared camera
+    ctx.save();
+    ctx.translate(WW / 2, WH / 2);
+    ctx.scale(trnCam.zoom, trnCam.zoom);
+    ctx.translate(-trnCam.x, -trnCam.y);
+    if (typeof drawTraining === 'function') drawTraining();
+    ctx.restore();
+    // Screen-space HUD (not affected by camera)
+    ctx.save();
+    if (typeof drawTrainingHUD === 'function') drawTrainingHUD();
+    drawTouchControls();
+    ctx.restore();
+    return;
+  }
+
+  updateCamera();
+
+  ctx.save();
+  // Camera transform: zoom into world centered on (cameraX, cameraY)
+  ctx.translate(WW / 2, WH / 2);
+  ctx.scale(cameraZoom, cameraZoom);
+  ctx.translate(-cameraX, -cameraY);
+
   ctx.save(); ctx.translate(shake.x, shake.y);
   drawRoom();
   drawSolidRects();
@@ -2204,13 +2313,18 @@ function draw() {
   drawFlashes();
   drawParticles();
   drawControlsHint();
+  ctx.restore(); // shake
+  ctx.restore(); // camera
+
+  // HUD elements drawn in screen-space (no camera transform)
+  ctx.save();
   drawTouchControls();
-  ctx.restore();
-  drawInventory();       // drawn outside shake transform
-  drawFactoryMenu();     // drawn outside shake transform
-  drawCreatorPanel();    // drawn outside shake transform
-  drawLOSBadge();        // drawn outside shake transform
+  drawInventory();
+  drawFactoryMenu();
+  drawCreatorPanel();
+  drawLOSBadge();
   drawCustomWeaponHUD(); // canvas HUD for custom weapons (index ≥ 3)
+  ctx.restore();
 }
 
 // ── LOOP ─────────────────────────────────────────
@@ -2251,34 +2365,66 @@ requestAnimationFrame(loop);
     if (e.key === 'Enter' && !joinBtn.disabled) joinBtn.click();
   });
 
-  joinBtn.addEventListener('click', () => {
-    document.getElementById('joinOverlay').style.display = 'none';
-
-    // Enable touch controls if requested
+  function enableMobileIfChecked() {
     if (mobileToggle && mobileToggle.checked) {
       touchControls.enabled = true;
       const btns = document.getElementById('touchBtns');
       if (btns) btns.style.display = 'flex';
-      // Hide HTML weapon HUD — it overlaps the joystick area; weapons shown via canvas UI
       const hud = document.getElementById('hud');
       if (hud) hud.style.display = 'none';
-      // Make weapon slots tappable on mobile
       for (let i = 0; i < 8; i++) {
         const slot = document.getElementById(`slot-${i}`);
         if (slot) { slot.style.pointerEvents = 'auto'; slot.style.cursor = 'pointer'; slot.addEventListener('pointerdown', () => switchWeapon(i)); }
       }
     }
+  }
 
+  joinBtn.addEventListener('click', () => {
+    document.getElementById('joinOverlay').style.display = 'none';
+    enableMobileIfChecked();
     connectToServer(nameInput.value.trim(), myPlayerColor);
     canvas.focus();
   });
 
-  // Touch action buttons
+  document.getElementById('trainingBtn').addEventListener('click', () => {
+    document.getElementById('joinOverlay').style.display = 'none';
+    // Hide shooter touch buttons — training has its own
+    const btns = document.getElementById('touchBtns');
+    if (btns) btns.style.display = 'none';
+    const hud = document.getElementById('hud');
+    if (hud) hud.style.display = 'none';
+    // Show training touch buttons on touch devices
+    const trnBtns = document.getElementById('trainingTouchBtns');
+    if (trnBtns && ('ontouchstart' in window || navigator.maxTouchPoints > 0))
+      trnBtns.style.display = 'flex';
+    gameMode = 'training';
+    initTraining();
+    canvas.focus();
+  });
+
+  // Shooter touch buttons
   const rollTouchBtn  = document.getElementById('rollTouchBtn');
   const decoyTouchBtn = document.getElementById('decoyTouchBtn');
   if (rollTouchBtn)
     rollTouchBtn.addEventListener('pointerdown', e => { e.stopPropagation(); tryRoll(); });
   if (decoyTouchBtn)
     decoyTouchBtn.addEventListener('pointerdown', e => { e.stopPropagation(); dropDecoy(); });
+
+  // Training touch buttons
+  const rollTrainingBtn = document.getElementById('rollTrainingBtn');
+  const spawnEnemyBtn   = document.getElementById('spawnEnemyBtn');
+  if (rollTrainingBtn) {
+    rollTrainingBtn.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      keys['Space'] = true;
+    });
+    rollTrainingBtn.addEventListener('pointerup',   e => { e.stopPropagation(); keys['Space'] = false; });
+    rollTrainingBtn.addEventListener('pointerleave',e => { keys['Space'] = false; });
+  }
+  if (spawnEnemyBtn)
+    spawnEnemyBtn.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      if (typeof trnSpawnEnemy === 'function') trnSpawnEnemy();
+    });
 })();
 
