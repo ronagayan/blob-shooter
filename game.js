@@ -2427,13 +2427,17 @@ requestAnimationFrame(loop);
     rollTrainingBtn.addEventListener('pointerleave',e => { keys['Space'] = false; });
   }
   if (spawnEnemyBtn) {
-    const doSpawn = e => {
-      e.preventDefault();
-      e.stopPropagation();
+    // Use multiple event types to ensure it works across all mobile browsers
+    let spawnCooldown = 0;
+    const doSpawn = () => {
+      const now = Date.now();
+      if (now - spawnCooldown < 300) return; // debounce duplicate events
+      spawnCooldown = now;
       if (window.trnRequestSpawn) window.trnRequestSpawn();
     };
     spawnEnemyBtn.addEventListener('pointerdown', doSpawn);
-    spawnEnemyBtn.addEventListener('touchstart', doSpawn, { passive: false });
+    spawnEnemyBtn.addEventListener('touchend', doSpawn);
+    spawnEnemyBtn.addEventListener('click', doSpawn);
   }
 })();
 
