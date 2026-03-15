@@ -861,7 +861,7 @@ function updateTraining(dt) {
 
   // Handle spawn button click (canvas HUD click or HTML button flag)
   checkTrainingSpawnClick();
-  if (_trnSpawnRequested) { _trnSpawnRequested = false; trnSpawnEnemy(); }
+  if (window._trnSpawnRequested) { window._trnSpawnRequested = false; trnSpawnEnemy(); }
 }
 
 // ── Draw (world-space content only) ─────────────
@@ -1233,9 +1233,8 @@ function checkTrainingBackClick() {
   return false;
 }
 
-// ── Spawn request flag — set by HTML button, consumed by update loop ──
-let _trnSpawnRequested = false;
-window.trnRequestSpawn = function() { _trnSpawnRequested = true; };
+// ── Spawn request flag — set by HTML button (game.js), consumed here ──
+window._trnSpawnRequested = false;
 
 // ── Spawn one enemy — callable from button or click ──
 window.trnSpawnEnemy = trnSpawnEnemy;

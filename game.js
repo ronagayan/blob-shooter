@@ -2427,17 +2427,9 @@ requestAnimationFrame(loop);
     rollTrainingBtn.addEventListener('pointerleave',e => { keys['Space'] = false; });
   }
   if (spawnEnemyBtn) {
-    // Use multiple event types to ensure it works across all mobile browsers
-    let spawnCooldown = 0;
-    const doSpawn = () => {
-      const now = Date.now();
-      if (now - spawnCooldown < 300) return; // debounce duplicate events
-      spawnCooldown = now;
-      if (window.trnRequestSpawn) window.trnRequestSpawn();
+    spawnEnemyBtn.onclick = () => {
+      window._trnSpawnRequested = true;
     };
-    spawnEnemyBtn.addEventListener('pointerdown', doSpawn);
-    spawnEnemyBtn.addEventListener('touchend', doSpawn);
-    spawnEnemyBtn.addEventListener('click', doSpawn);
   }
 })();
 

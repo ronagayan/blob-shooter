@@ -340,7 +340,7 @@ body {
   z-index: 50;
 }
 #rollTrainingBtn { border-color: rgba(68,170,255,0.8); }
-#spawnEnemyBtn   { border-color: rgba(159,168,218,0.8); font-size: clamp(8px, 2vmin, 11px); }
+#spawnEnemyBtn   { border-color: rgba(159,168,218,0.8); font-size: clamp(8px, 2vmin, 11px); touch-action: manipulation; }
 
 /* ── Inventory overlay (drawn on canvas, no extra HTML needed) ── */
 
